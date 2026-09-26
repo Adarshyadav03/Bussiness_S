@@ -1,0 +1,211 @@
+// Prisma Schema for ERP System
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  SALES_USER
+}
+
+enum EnquiryStatus {
+  NEW
+  QUOTED
+  WON
+  LOST
+}
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  DISPATCHED
+  CANCELLED
+}
+
+model User {
+  id            Int      @id @default(autoincrement())
+  name          String
+  email         String   @unique
+  password_hash String
+  role          Role     @default(SALES_USER)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Customer {
+  id             Int          @id @default(autoincrement())
+  company_name   String
+  contact_person String
+  mobile         String
+  email          String
+  city           String
+  created_at     DateTime     @default(now())
+  updated_at     DateTime     @updatedAt
+  enquiries      Enquiry[]
+  quotations     Quotation[]
+  sales_orders   SalesOrder[]
+
+  @@map("customers")
+}
+
+model Product {
+  id                Int               @id @default(autoincrement())
+  product_code      String            @unique
+  product_name      String
+  category          String
+  unit              String
+  base_price        Float
+  created_at        DateTime          @default(now())
+  updated_at        DateTime          @updatedAt
+  inventory         Inventory?
+  enquiry_items     EnquiryItem[]
+  quotation_items   QuotationItem[]
+  sales_order_items SalesOrderItem[]
+  dispatch_items    DispatchItem[]
+
+  @@map("products")
+}
+
+model Inventory {
+  id                Int      @id @default(autoincrement())
+  product_id        Int      @unique
+  product           Product  @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  physical_quantity Int      @default(0)
+  reserved_quantity Int      @default(0)
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  @@map("inventory")
+}
+
+model Enquiry {
+  id             Int           @id @default(autoincrement())
+  enquiry_number String        @unique
+  customer_id    Int
+  customer       Customer      @relation(fields: [customer_id], references: [id], onDelete: Restrict)
+  enquiry_date   DateTime      @default(now())
+  required_date  DateTime
+  notes          String?
+  status         EnquiryStatus @default(NEW)
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @updatedAt
+  items          EnquiryItem[]
+  quotations     Quotation[]
+
+  @@map("enquiries")
+}
+
+model EnquiryItem {
+  id         Int     @id @default(autoincrement())
+  enquiry_id Int
+  enquiry    Enquiry @relation(fields: [enquiry_id], references: [id], onDelete: Cascade)
+  product_id Int
+  product    Product @relation(fields: [product_id], references: [id], onDelete: Restrict)
+  quantity   Int
+
+  @@map("enquiry_items")
+}
+
+model Quotation {
+  id               Int             @id @default(autoincrement())
+  quotation_number String          @unique
+  enquiry_id       Int
+  enquiry          Enquiry         @relation(fields: [enquiry_id], references: [id], onDelete: Restrict)
+  customer_id      Int
+  customer         Customer        @relation(fields: [customer_id], references: [id], onDelete: Restrict)
+  valid_until      DateTime
+  status           QuotationStatus @default(DRAFT)
+  grand_total      Float           @default(0)
+  created_at       DateTime        @default(now())
+  updated_at       DateTime        @updatedAt
+  items            QuotationItem[]
+  sales_order      SalesOrder?
+
+  @@map("quotations")
+}
+
+model QuotationItem {
+  id               Int       @id @default(autoincrement())
+  quotation_id     Int
+  quotation        Quotation @relation(fields: [quotation_id], references: [id], onDelete: Cascade)
+  product_id       Int
+  product          Product   @relation(fields: [product_id], references: [id], onDelete: Restrict)
+  quantity         Int
+  unit_price       Float
+  discount_percent Float     @default(0)
+  gst_percent      Float     @default(18)
+  line_amount      Float
+
+  @@map("quotation_items")
+}
+
+model SalesOrder {
+  id           Int              @id @default(autoincrement())
+  order_number String           @unique
+  customer_id  Int
+  customer     Customer         @relation(fields: [customer_id], references: [id], onDelete: Restrict)
+  quotation_id Int              @unique
+  quotation    Quotation        @relation(fields: [quotation_id], references: [id], onDelete: Restrict)
+  order_date   DateTime         @default(now())
+  total_amount Float
+  status       OrderStatus      @default(PENDING)
+  created_at   DateTime         @default(now())
+  updated_at   DateTime         @updatedAt
+  items        SalesOrderItem[]
+  dispatches   Dispatch[]
+
+  @@map("sales_orders")
+}
+
+model SalesOrderItem {
+  id             Int        @id @default(autoincrement())
+  sales_order_id Int
+  sales_order    SalesOrder @relation(fields: [sales_order_id], references: [id], onDelete: Cascade)
+  product_id     Int
+  product        Product    @relation(fields: [product_id], references: [id], onDelete: Restrict)
+  quantity       Int
+  unit_price     Float
+  line_amount    Float
+
+  @@map("sales_order_items")
+}
+
+model Dispatch {
+  id              Int            @id @default(autoincrement())
+  dispatch_number String         @unique
+  sales_order_id  Int
+  sales_order     SalesOrder     @relation(fields: [sales_order_id], references: [id], onDelete: Restrict)
+  dispatch_date   DateTime       @default(now())
+  vehicle_number  String
+  driver_name     String
+  created_at      DateTime       @default(now())
+  items           DispatchItem[]
+
+  @@map("dispatches")
+}
+
+model DispatchItem {
+  id          Int      @id @default(autoincrement())
+  dispatch_id Int
+  dispatch    Dispatch @relation(fields: [dispatch_id], references: [id], onDelete: Cascade)
+  product_id  Int
+  product     Product  @relation(fields: [product_id], references: [id], onDelete: Restrict)
+  quantity    Int
+
+  @@map("dispatch_items")
+}
