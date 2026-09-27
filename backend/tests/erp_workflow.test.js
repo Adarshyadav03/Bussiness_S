@@ -375,4 +375,65 @@ describe('ERP Business Logic & Workflow Automated Tests', () => {
     const inv = await prisma.inventory.findUnique({ where: { product_id: testProductId2 } });
     expect(inv.reserved_quantity).toBe(70);
   });
+
+  // Test 8: Admin complete Order Confirmation & Dispatch stock lifecycle validation
+  test('Test 8: Admin order confirmation reserves stock, dispatch reduces physical & reserved stock, duplicate & invalid dispatches blocked', async () => {
+    // 1. Reset inventory for testProductId1 to Physical: 200, Reserved: 0
+    await prisma.inventory.update({
+      where: { product_id: testProductId1 },
+      data: { physical_quantity: 200, reserved_quantity: 0 },
+    });
+
+    // 2. Sales User creates Order for 30 units
+    const enq = await request(app).post('/api/enquiries').set('Authorization', `Bearer ${salesToken}`).send({
+      customer_id: testCustomerId,
+      required_date: new Date().toISOString(),
+      items: [{ product_id: testProductId1, quantity: 30 }],
+    });
+    const quote = await request(app).post('/api/quotations').set('Authorization', `Bearer ${salesToken}`).send({
+      enquiry_id: enq.body.data.id,
+      valid_until: new Date().toISOString(),
+      items: [{ product_id: testProductId1, quantity: 30, unit_price: 1000 }],
+    });
+    await request(app).patch(`/api/quotations/${quote.body.data.id}/status`).set('Authorization', `Bearer ${salesToken}`).send({ status: 'SENT' });
+    await request(app).patch(`/api/quotations/${quote.body.data.id}/status`).set('Authorization', `Bearer ${salesToken}`).send({ status: 'ACCEPTED' });
+    const orderRes = await request(app).post(`/api/quotations/${quote.body.data.id}/convert`).set('Authorization', `Bearer ${salesToken}`);
+    const orderId = orderRes.body.data.id;
+
+    // 3. Attempting dispatch on PENDING order -> Should fail with 400
+    const pendingDispatch = await request(app)
+      .post(`/api/sales-orders/${orderId}/dispatch`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ vehicle_number: 'MH-12-AB-9999', driver_name: 'Driver A' });
+    expect(pendingDispatch.status).toBe(400);
+
+    // 4. Admin Confirms Order -> Physical remains 200, Reserved becomes 30
+    const confirmRes = await request(app)
+      .post(`/api/sales-orders/${orderId}/confirm`)
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(confirmRes.status).toBe(200);
+
+    const invAfterConfirm = await prisma.inventory.findUnique({ where: { product_id: testProductId1 } });
+    expect(invAfterConfirm.physical_quantity).toBe(200); // Physical NOT decreased!
+    expect(invAfterConfirm.reserved_quantity).toBe(30);   // Reserved increased!
+
+    // 5. Admin Processes Dispatch -> Physical becomes 170 (200-30), Reserved becomes 0 (30-30)
+    const dispatchRes = await request(app)
+      .post(`/api/sales-orders/${orderId}/dispatch`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ vehicle_number: 'MH-12-AB-9999', driver_name: 'Driver A' });
+    expect(dispatchRes.status).toBe(200);
+    expect(dispatchRes.body.data.salesOrder.status).toBe('DISPATCHED');
+
+    const invAfterDispatch = await prisma.inventory.findUnique({ where: { product_id: testProductId1 } });
+    expect(invAfterDispatch.physical_quantity).toBe(170); // Physical decreased!
+    expect(invAfterDispatch.reserved_quantity).toBe(0);    // Reserved decreased!
+
+    // 6. Duplicate dispatch on already DISPATCHED order -> Should fail with 400/409
+    const duplicateDispatch = await request(app)
+      .post(`/api/sales-orders/${orderId}/dispatch`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ vehicle_number: 'MH-12-AB-9999', driver_name: 'Driver A' });
+    expect(duplicateDispatch.status).toBeGreaterThanOrEqual(400);
+  });
 });
