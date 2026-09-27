@@ -21,7 +21,7 @@ router.post(
 );
 router.patch(
   '/:id/status',
-  requireRole('SALES_USER'),
+  requireRole('SALES_USER', 'ADMIN'),
   validateSchema(quotationStatusSchema),
   quotationController.updateQuotationStatus
 );

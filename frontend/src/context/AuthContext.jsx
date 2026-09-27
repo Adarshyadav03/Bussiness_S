@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
-import { loginApi } from '../services/authApi';
+import { loginApi, signupApi } from '../services/authApi';
 
 export const AuthContext = createContext(null);
 
@@ -37,6 +37,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const signup = async (name, email, password) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await signupApi({ name, email, password });
+      return { success: true, message: response.message };
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Signup failed. Please try again.';
+      setError(msg);
+      return { success: false, error: msg };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = () => {
     setUser(null);
     setToken(null);
@@ -55,6 +70,7 @@ export const AuthProvider = ({ children }) => {
         loading,
         error,
         login,
+        signup,
         logout,
       }}
     >

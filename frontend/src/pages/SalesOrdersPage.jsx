@@ -55,12 +55,11 @@ export const SalesOrdersPage = () => {
   };
 
   const handleConfirmOrder = async (id) => {
-    if (!window.confirm('Confirm this Sales Order and reserve inventory stock?')) return;
     try {
       await confirmSalesOrderApi(id);
       alert('Sales Order CONFIRMED and inventory reserved successfully!');
       fetchData();
-      if (isViewOpen) setIsViewOpen(false);
+      setIsViewOpen(false);
     } catch (err) {
       alert(err.response?.data?.message || 'Order confirmation failed');
     }

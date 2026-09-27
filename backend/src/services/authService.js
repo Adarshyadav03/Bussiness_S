@@ -41,4 +41,39 @@ async function login(email, password) {
   };
 }
 
-module.exports = { login };
+async function signup(name, email, password) {
+  const normalizedEmail = email.toLowerCase().trim();
+  const existingUser = await prisma.user.findUnique({
+    where: { email: normalizedEmail },
+  });
+
+  if (existingUser) {
+    const error = new Error('User with this email already exists');
+    error.statusCode = 400;
+    error.errorCode = 'DUPLICATE_EMAIL';
+    throw error;
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  const newUser = await prisma.user.create({
+    data: {
+      name: name.trim(),
+      email: normalizedEmail,
+      password_hash: passwordHash,
+      role: 'SALES_USER', // Default role requirement
+    },
+  });
+
+  return {
+    success: true,
+    message: 'Account created successfully. Please login.',
+    user: {
+      id: newUser.id,
+      name: newUser.name,
+      email: newUser.email,
+      role: newUser.role,
+    },
+  };
+}
+
+module.exports = { login, signup };

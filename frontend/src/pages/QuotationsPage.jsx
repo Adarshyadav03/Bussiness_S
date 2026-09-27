@@ -18,7 +18,7 @@ export const QuotationsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const { isSalesUser } = useAuth();
+  const { isSalesUser, isAdmin } = useAuth();
 
   // Modals state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -142,11 +142,10 @@ export const QuotationsPage = () => {
   };
 
   const handleConvertToSalesOrder = async (id) => {
-    if (!window.confirm('Convert this accepted quotation to a Sales Order?')) return;
     try {
       await convertQuotationToOrderApi(id);
       alert('Quotation converted to Sales Order successfully!');
-      navigate('/sales-orders');
+      navigate(isAdmin ? '/admin/sales-orders' : '/sales/sales-orders');
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to convert quotation to Sales Order');
     }
@@ -235,7 +234,7 @@ export const QuotationsPage = () => {
                           </button>
                         )}
 
-                        {isSalesUser && q.status === 'SENT' && (
+                        {q.status === 'SENT' && (
                           <>
                             <button
                               className="btn btn-success btn-sm"
@@ -252,13 +251,32 @@ export const QuotationsPage = () => {
                           </>
                         )}
 
-                        {isSalesUser && q.status === 'ACCEPTED' && (
+                        {isSalesUser && q.status === 'ACCEPTED' && !q.sales_order && (
                           <button
                             className="btn btn-success btn-sm"
                             onClick={() => handleConvertToSalesOrder(q.id)}
                           >
                             <ArrowRightCircle size={14} /> Convert to Order
                           </button>
+                        )}
+
+                        {q.status === 'ACCEPTED' && q.sales_order && (
+                          <span
+                            style={{
+                              fontSize: '0.75rem',
+                              color: '#15803d',
+                              fontWeight: 600,
+                              padding: '0.25rem 0.5rem',
+                              background: '#f0fdf4',
+                              borderRadius: '4px',
+                              border: '1px solid #bbf7d0',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                            }}
+                          >
+                            <CheckCircle size={12} /> {q.sales_order.order_number} Converted
+                          </span>
                         )}
                       </div>
                     </td>

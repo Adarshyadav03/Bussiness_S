@@ -23,6 +23,12 @@ const loginSchema = z.object({
   password: z.string().min(1, { message: 'Password is required' }),
 });
 
+const signupSchema = z.object({
+  name: z.string().min(1, { message: 'Name is required' }),
+  email: z.string().email({ message: 'Invalid email address' }),
+  password: z.string().min(4, { message: 'Password must be at least 4 characters long' }),
+});
+
 const customerSchema = z.object({
   company_name: z.string().min(1, { message: 'Company name is required' }),
   contact_person: z.string().min(1, { message: 'Contact person is required' }),
@@ -82,6 +88,7 @@ const updateInventorySchema = z.object({
 module.exports = {
   validateSchema,
   loginSchema,
+  signupSchema,
   customerSchema,
   productSchema,
   enquirySchema,

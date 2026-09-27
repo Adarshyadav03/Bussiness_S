@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import {
+  LayoutDashboard,
   FileText,
   DollarSign,
   ShoppingCart,
@@ -10,7 +11,8 @@ import {
 } from 'lucide-react';
 
 export const Sidebar = () => {
-  const { user, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
+  const prefix = isAdmin ? '/admin' : '/sales';
 
   return (
     <aside className="sidebar">
@@ -20,7 +22,15 @@ export const Sidebar = () => {
       </div>
       <nav className="sidebar-nav">
         <NavLink
-          to="/enquiries"
+          to={`${prefix}/dashboard`}
+          className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+        >
+          <LayoutDashboard size={18} />
+          <span>Dashboard</span>
+        </NavLink>
+
+        <NavLink
+          to={`${prefix}/enquiries`}
           className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
         >
           <FileText size={18} />
@@ -28,7 +38,7 @@ export const Sidebar = () => {
         </NavLink>
 
         <NavLink
-          to="/quotations"
+          to={`${prefix}/quotations`}
           className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
         >
           <DollarSign size={18} />
@@ -36,22 +46,20 @@ export const Sidebar = () => {
         </NavLink>
 
         <NavLink
-          to="/sales-orders"
+          to={`${prefix}/sales-orders`}
           className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
         >
           <ShoppingCart size={18} />
           <span>Sales Orders</span>
         </NavLink>
 
-        {isAdmin && (
-          <NavLink
-            to="/inventory"
-            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-          >
-            <Boxes size={18} />
-            <span>Inventory</span>
-          </NavLink>
-        )}
+        <NavLink
+          to={`${prefix}/inventory`}
+          className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+        >
+          <Boxes size={18} />
+          <span>{isAdmin ? 'Inventory' : 'Stock Availability'}</span>
+        </NavLink>
       </nav>
     </aside>
   );

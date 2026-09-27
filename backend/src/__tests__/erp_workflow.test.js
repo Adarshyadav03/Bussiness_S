@@ -1,7 +1,7 @@
 const request = require('supertest');
-const app = require('../src/app');
-const prisma = require('../src/config/prisma');
-const { calculateQuotationItem, calculateQuotationGrandTotal } = require('../src/utils/quotationMath');
+const app = require('../app');
+const prisma = require('../config/prisma');
+const { calculateQuotationItem, calculateQuotationGrandTotal } = require('../utils/quotationMath');
 
 let adminToken;
 let salesToken;
@@ -326,10 +326,6 @@ describe('ERP Business Logic & Workflow Automated Tests', () => {
     });
 
     // Create 2 Sales Orders of quantity 70 each for testProductId2
-    // Available stock is 100.
-    // Order A requires 70, Order B requires 70.
-    // Simultaneous request: ONLY ONE can succeed! Both requesting 70 exceeds 100.
-
     // Order A setup
     const enqA = await request(app).post('/api/enquiries').set('Authorization', `Bearer ${salesToken}`).send({
       customer_id: testCustomerId,
