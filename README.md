@@ -410,3 +410,4 @@ Follow these steps to demonstrate the complete workflow:
 22. Enter vehicle number `MH-12-AB-1234` and driver name `Rajesh Kumar`.
 23. Click **Complete Dispatch**.
 24. Verify physical stock and reserved stock decreased in PostgreSQL and Order Status updated to `DISPATCHED`.
+
