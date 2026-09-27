@@ -262,19 +262,43 @@ describe('ERP Business Logic & Workflow Automated Tests', () => {
     expect(confirmRes.body.error).toBe('INSUFFICIENT_STOCK');
   });
 
-  // Test 6: Unauthorized user cannot perform restricted operation
-  test('Test 6: Unauthorized user (SALES_USER) cannot confirm Sales Order or process Dispatch', async () => {
+  // Test 6: Unauthorized user role restrictions (RBAC)
+  test('Test 6: RBAC checks - ADMIN blocked from quotation mutations and SALES_USER blocked from order confirmation/dispatch', async () => {
     // 1. Unauthenticated request -> 401
     const unauthRes = await request(app).get('/api/sales-orders');
     expect(unauthRes.status).toBe(401);
 
-    // 2. SALES_USER attempting ADMIN-only operation (confirm order) -> 403 Forbidden
+    // 2. ADMIN attempting SALES_USER-only operation (Create Quotation) -> 403 Forbidden
+    const adminCreateQuote = await request(app)
+      .post('/api/quotations')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        enquiry_id: 1,
+        valid_until: new Date().toISOString(),
+        items: [{ product_id: testProductId1, quantity: 1, unit_price: 100 }],
+      });
+    expect(adminCreateQuote.status).toBe(403);
+
+    // 3. ADMIN attempting SALES_USER-only operation (Update Quotation Status) -> 403 Forbidden
+    const adminUpdateStatus = await request(app)
+      .patch('/api/quotations/1/status')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ status: 'SENT' });
+    expect(adminUpdateStatus.status).toBe(403);
+
+    // 4. ADMIN attempting SALES_USER-only operation (Convert Quotation to Sales Order) -> 403 Forbidden
+    const adminConvertOrder = await request(app)
+      .post('/api/quotations/1/convert')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(adminConvertOrder.status).toBe(403);
+
+    // 5. SALES_USER attempting ADMIN-only operation (confirm order) -> 403 Forbidden
     const confirmForbidden = await request(app)
       .post('/api/sales-orders/1/confirm')
       .set('Authorization', `Bearer ${salesToken}`);
     expect(confirmForbidden.status).toBe(403);
 
-    // 3. SALES_USER attempting ADMIN-only operation (dispatch order) -> 403 Forbidden
+    // 6. SALES_USER attempting ADMIN-only operation (dispatch order) -> 403 Forbidden
     const dispatchForbidden = await request(app)
       .post('/api/sales-orders/1/dispatch')
       .set('Authorization', `Bearer ${salesToken}`)

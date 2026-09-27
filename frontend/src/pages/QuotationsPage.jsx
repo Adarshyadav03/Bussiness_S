@@ -7,6 +7,7 @@ import {
   convertQuotationToOrderApi,
 } from '../services/quotationApi';
 import { getEnquiriesApi } from '../services/enquiryApi';
+import { useAuth } from '../hooks/useAuth';
 import { StatusBadge } from '../components/StatusBadge';
 import { Modal } from '../components/Modal';
 import { Plus, Eye, Send, CheckCircle, XCircle, ArrowRightCircle } from 'lucide-react';
@@ -16,6 +17,8 @@ export const QuotationsPage = () => {
   const [enquiries, setEnquiries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const { isSalesUser } = useAuth();
 
   // Modals state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -49,13 +52,13 @@ export const QuotationsPage = () => {
 
   // Pre-fill if navigated from Enquiry page with state
   useEffect(() => {
-    if (location.state?.createFromEnquiry) {
+    if (location.state?.createFromEnquiry && isSalesUser) {
       const enq = location.state.createFromEnquiry;
       setSelectedEnquiryId(enq.id);
       populateItemsFromEnquiry(enq);
       setIsCreateOpen(true);
     }
-  }, [location.state]);
+  }, [location.state, isSalesUser]);
 
   const populateItemsFromEnquiry = (enq) => {
     if (!enq || !enq.items) return;
@@ -158,15 +161,17 @@ export const QuotationsPage = () => {
             Generate, send, and convert price quotations into Sales Orders
           </p>
         </div>
-        <button
-          className="btn btn-primary"
-          onClick={() => {
-            setError(null);
-            setIsCreateOpen(true);
-          }}
-        >
-          <Plus size={18} /> Create Quotation
-        </button>
+        {isSalesUser && (
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              setError(null);
+              setIsCreateOpen(true);
+            }}
+          >
+            <Plus size={18} /> Create Quotation
+          </button>
+        )}
       </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
@@ -176,7 +181,9 @@ export const QuotationsPage = () => {
           <p style={{ textAlign: 'center', padding: '2rem' }}>Loading quotations...</p>
         ) : quotations.length === 0 ? (
           <p style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
-            No quotations created yet. Click '+ Create Quotation' to start.
+            {isSalesUser
+              ? "No quotations created yet. Click '+ Create Quotation' to start."
+              : 'No quotations available.'}
           </p>
         ) : (
           <div className="table-responsive">
@@ -219,7 +226,7 @@ export const QuotationsPage = () => {
                           <Eye size={14} /> View
                         </button>
 
-                        {q.status === 'DRAFT' && (
+                        {isSalesUser && q.status === 'DRAFT' && (
                           <button
                             className="btn btn-primary btn-sm"
                             onClick={() => handleStatusChange(q.id, 'SENT')}
@@ -228,7 +235,7 @@ export const QuotationsPage = () => {
                           </button>
                         )}
 
-                        {q.status === 'SENT' && (
+                        {isSalesUser && q.status === 'SENT' && (
                           <>
                             <button
                               className="btn btn-success btn-sm"
@@ -245,7 +252,7 @@ export const QuotationsPage = () => {
                           </>
                         )}
 
-                        {q.status === 'ACCEPTED' && (
+                        {isSalesUser && q.status === 'ACCEPTED' && (
                           <button
                             className="btn btn-success btn-sm"
                             onClick={() => handleConvertToSalesOrder(q.id)}
