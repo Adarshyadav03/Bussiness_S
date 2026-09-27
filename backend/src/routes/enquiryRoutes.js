@@ -11,7 +11,7 @@ router.get('/', enquiryController.getAllEnquiries);
 router.get('/:id', enquiryController.getEnquiryById);
 router.post(
   '/',
-  requireRole('SALES_USER', 'ADMIN'),
+  requireRole('SALES_USER'),
   validateSchema(enquirySchema),
   enquiryController.createEnquiry
 );

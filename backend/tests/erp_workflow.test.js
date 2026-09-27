@@ -268,7 +268,18 @@ describe('ERP Business Logic & Workflow Automated Tests', () => {
     const unauthRes = await request(app).get('/api/sales-orders');
     expect(unauthRes.status).toBe(401);
 
-    // 2. ADMIN attempting SALES_USER-only operation (Create Quotation) -> 403 Forbidden
+    // 2. ADMIN attempting SALES_USER-only operation (Create Enquiry) -> 403 Forbidden
+    const adminCreateEnquiry = await request(app)
+      .post('/api/enquiries')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        customer_id: testCustomerId,
+        required_date: new Date().toISOString(),
+        items: [{ product_id: testProductId1, quantity: 1 }],
+      });
+    expect(adminCreateEnquiry.status).toBe(403);
+
+    // 3. ADMIN attempting SALES_USER-only operation (Create Quotation) -> 403 Forbidden
     const adminCreateQuote = await request(app)
       .post('/api/quotations')
       .set('Authorization', `Bearer ${adminToken}`)

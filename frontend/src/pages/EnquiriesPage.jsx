@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getEnquiriesApi, createEnquiryApi } from '../services/enquiryApi';
 import { getCustomersApi, createCustomerApi } from '../services/customerApi';
 import { getProductsApi } from '../services/productApi';
+import { useAuth } from '../hooks/useAuth';
 import { StatusBadge } from '../components/StatusBadge';
 import { Modal } from '../components/Modal';
 import { Plus, Trash2, Eye, FilePlus } from 'lucide-react';
@@ -13,6 +14,8 @@ export const EnquiriesPage = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const { isSalesUser } = useAuth();
 
   // Modals state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -131,15 +134,17 @@ export const EnquiriesPage = () => {
             Manage incoming sales requests and customer requirements
           </p>
         </div>
-        <button
-          className="btn btn-primary"
-          onClick={() => {
-            setError(null);
-            setIsCreateOpen(true);
-          }}
-        >
-          <Plus size={18} /> Create Enquiry
-        </button>
+        {isSalesUser && (
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              setError(null);
+              setIsCreateOpen(true);
+            }}
+          >
+            <Plus size={18} /> Create Enquiry
+          </button>
+        )}
       </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
@@ -149,7 +154,9 @@ export const EnquiriesPage = () => {
           <p style={{ textAlign: 'center', padding: '2rem' }}>Loading enquiries...</p>
         ) : enquiries.length === 0 ? (
           <p style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
-            No enquiries recorded yet. Click '+ Create Enquiry' to start.
+            {isSalesUser
+              ? "No enquiries recorded yet. Click '+ Create Enquiry' to start."
+              : 'No enquiries recorded yet.'}
           </p>
         ) : (
           <div className="table-responsive">
@@ -187,7 +194,7 @@ export const EnquiriesPage = () => {
                         >
                           <Eye size={14} /> View
                         </button>
-                        {enq.status === 'NEW' && (
+                        {isSalesUser && enq.status === 'NEW' && (
                           <button
                             className="btn btn-primary btn-sm"
                             onClick={() =>
