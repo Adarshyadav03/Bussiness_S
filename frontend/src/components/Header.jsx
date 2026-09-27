@@ -1,10 +1,17 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { LogOut, User } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { StatusBadge } from './StatusBadge';
 
 export const Header = () => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
     <header className="header">
@@ -16,7 +23,7 @@ export const Header = () => {
             <StatusBadge status={user?.role} />
           </span>
         </div>
-        <button className="btn btn-secondary btn-sm" onClick={logout} title="Logout">
+        <button className="btn btn-secondary btn-sm" onClick={handleLogout} title="Logout">
           <LogOut size={16} /> Logout
         </button>
       </div>

@@ -16,6 +16,10 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
+      // Clear any previous session token to prevent role token mismatch
+      localStorage.removeItem('erp_user');
+      localStorage.removeItem('erp_token');
+
       const response = await loginApi({ email, password });
       if (response.success) {
         setUser(response.user);
